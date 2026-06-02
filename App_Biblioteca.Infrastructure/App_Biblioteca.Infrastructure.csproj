@@ -7,4 +7,9 @@
         <RootNamespace>App_Biblioteca.Structure</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\App_Biblioteca.Application\App_Biblioteca.Application.csproj" />
+      <ProjectReference Include="..\App_Biblioteca.Domain\App_Biblioteca.Domain.csproj" />
+    </ItemGroup>
+
 </Project>
