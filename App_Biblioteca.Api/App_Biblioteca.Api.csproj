@@ -4,17 +4,21 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>App_Biblioteca</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.14" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
+        <PackageReference Include="MediatR" Version="12.5.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="7.3.1" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\App_Biblioteca.Application\App_Biblioteca.Application.csproj" />
-      <ProjectReference Include="..\App_Biblioteca.Infrastructure\App_Biblioteca.Infrastructure.csproj" />
+        <ProjectReference Include="..\App_Biblioteca.Application\App_Biblioteca.Application.csproj" />
+        <ProjectReference Include="..\App_Biblioteca.Infrastructure\App_Biblioteca.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>
