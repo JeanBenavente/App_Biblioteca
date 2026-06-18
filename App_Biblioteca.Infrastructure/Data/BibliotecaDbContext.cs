@@ -1,166 +1,89 @@
-﻿using System;
-using System.Collections.Generic;
-using App_Biblioteca.Structure.Persistence.Entities;
+using App_Biblioteca.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
 
-namespace App_Biblioteca.Structure.Data;
+namespace App_Biblioteca.Infrastructure.Data;
 
-public partial class BibliotecaDbContext : DbContext
+public class BibliotecaDbContext : DbContext
 {
-    public BibliotecaDbContext()
+    public BibliotecaDbContext(DbContextOptions<BibliotecaDbContext> options) : base(options)
     {
     }
 
-    public BibliotecaDbContext(DbContextOptions<BibliotecaDbContext> options)
-        : base(options)
-    {
-    }
-
-    public virtual DbSet<autores> autores { get; set; }
-
-    public virtual DbSet<categorias> categorias { get; set; }
-
-    public virtual DbSet<editoriales> editoriales { get; set; }
-
-    public virtual DbSet<libros> libros { get; set; }
-
-    public virtual DbSet<prestamos> prestamos { get; set; }
-
-    public virtual DbSet<roles> roles { get; set; }
-
-    public virtual DbSet<usuarios> usuarios { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseMySql("server=localhost;port=3306;database=BibliotecaDigitalDB;user=root;password=piero", Microsoft.EntityFrameworkCore.ServerVersion.Parse("9.6.0-mysql"));
+    public DbSet<Autor> Autores { get; set; }
+    public DbSet<Categoria> Categorias { get; set; }
+    public DbSet<Editorial> Editoriales { get; set; }
+    public DbSet<Libro> Libros { get; set; }
+    public DbSet<Prestamo> Prestamos { get; set; }
+    public DbSet<Rol> Roles { get; set; }
+    public DbSet<Usuario> Usuarios { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder
-            .UseCollation("utf8mb4_0900_ai_ci")
-            .HasCharSet("utf8mb4");
-
-        modelBuilder.Entity<autores>(entity =>
+        modelBuilder.Entity<Autor>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-
-            entity.HasIndex(e => e.Nombre, "IX_Autores_Nombre");
-
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nombre).HasMaxLength(150).IsRequired();
             entity.Property(e => e.Nacionalidad).HasMaxLength(100);
-            entity.Property(e => e.Nombre).HasMaxLength(150);
+            entity.HasMany(e => e.Libros).WithOne(l => l.Autor).HasForeignKey(l => l.AutorId);
         });
 
-        modelBuilder.Entity<categorias>(entity =>
+        modelBuilder.Entity<Categoria>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nombre).HasMaxLength(100).IsRequired();
             entity.Property(e => e.Descripcion).HasMaxLength(255);
-            entity.Property(e => e.Nombre).HasMaxLength(100);
+            entity.HasMany(e => e.Libros).WithOne(l => l.Categoria).HasForeignKey(l => l.CategoriaId);
         });
 
-        modelBuilder.Entity<editoriales>(entity =>
+        modelBuilder.Entity<Editorial>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-
-            entity.Property(e => e.Nombre).HasMaxLength(150);
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nombre).HasMaxLength(150).IsRequired();
             entity.Property(e => e.Pais).HasMaxLength(100);
+            entity.HasMany(e => e.Libros).WithOne(l => l.Editorial).HasForeignKey(l => l.EditorialId);
         });
 
-        modelBuilder.Entity<libros>(entity =>
+        modelBuilder.Entity<Libro>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-
-            entity.HasIndex(e => e.AutorId, "FK_Libros_Autores");
-
-            entity.HasIndex(e => e.CategoriaId, "FK_Libros_Categorias");
-
-            entity.HasIndex(e => e.EditorialId, "FK_Libros_Editoriales");
-
-            entity.HasIndex(e => e.ISBN, "ISBN").IsUnique();
-
-            entity.HasIndex(e => e.Titulo, "IX_Libros_Titulo");
-
-            entity.Property(e => e.ISBN).HasMaxLength(20);
-            entity.Property(e => e.Titulo).HasMaxLength(200);
-
-            entity.HasOne(d => d.Autor).WithMany(p => p.libros)
-                .HasForeignKey(d => d.AutorId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Libros_Autores");
-
-            entity.HasOne(d => d.Categoria).WithMany(p => p.libros)
-                .HasForeignKey(d => d.CategoriaId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Libros_Categorias");
-
-            entity.HasOne(d => d.Editorial).WithMany(p => p.libros)
-                .HasForeignKey(d => d.EditorialId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Libros_Editoriales");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Titulo).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.ISBN).HasMaxLength(20).IsRequired();
+            entity.HasIndex(e => e.ISBN).IsUnique();
+            entity.HasOne(e => e.Autor).WithMany(a => a.Libros).HasForeignKey(e => e.AutorId);
+            entity.HasOne(e => e.Categoria).WithMany(c => c.Libros).HasForeignKey(e => e.CategoriaId);
+            entity.HasOne(e => e.Editorial).WithMany(ed => ed.Libros).HasForeignKey(e => e.EditorialId);
         });
 
-        modelBuilder.Entity<prestamos>(entity =>
+        modelBuilder.Entity<Rol>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-
-            entity.HasIndex(e => e.LibroId, "IX_Prestamos_LibroId");
-
-            entity.HasIndex(e => e.UsuarioId, "IX_Prestamos_UsuarioId");
-
-            entity.Property(e => e.Estado)
-                .HasDefaultValueSql("'Activo'")
-                .HasColumnType("enum('Activo','Devuelto')");
-            entity.Property(e => e.FechaDevolucion).HasColumnType("datetime");
-            entity.Property(e => e.FechaPrestamo)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("datetime");
-
-            entity.HasOne(d => d.Libro).WithMany(p => p.prestamos)
-                .HasForeignKey(d => d.LibroId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Prestamos_Libros");
-
-            entity.HasOne(d => d.Usuario).WithMany(p => p.prestamos)
-                .HasForeignKey(d => d.UsuarioId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Prestamos_Usuarios");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nombre).HasMaxLength(50).IsRequired();
+            entity.HasIndex(e => e.Nombre).IsUnique();
+            entity.HasMany(e => e.Usuarios).WithOne(u => u.Rol).HasForeignKey(u => u.RolId);
         });
 
-        modelBuilder.Entity<roles>(entity =>
+        modelBuilder.Entity<Usuario>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-
-            entity.HasIndex(e => e.Nombre, "Nombre").IsUnique();
-
-            entity.Property(e => e.Nombre).HasMaxLength(50);
-        });
-
-        modelBuilder.Entity<usuarios>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-
-            entity.HasIndex(e => e.Correo, "Correo").IsUnique();
-
-            entity.HasIndex(e => e.RolId, "FK_Usuarios_Roles");
-
-            entity.Property(e => e.Apellido).HasMaxLength(100);
-            entity.Property(e => e.Correo).HasMaxLength(150);
-            entity.Property(e => e.FechaRegistro)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("datetime");
-            entity.Property(e => e.Nombre).HasMaxLength(100);
-            entity.Property(e => e.PasswordHash).HasMaxLength(255);
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nombre).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Apellido).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Correo).HasMaxLength(150).IsRequired();
+            entity.HasIndex(e => e.Correo).IsUnique();
+            entity.Property(e => e.PasswordHash).HasMaxLength(255).IsRequired();
             entity.Property(e => e.Telefono).HasMaxLength(20);
-
-            entity.HasOne(d => d.Rol).WithMany(p => p.usuarios)
-                .HasForeignKey(d => d.RolId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Usuarios_Roles");
+            entity.Property(e => e.FechaRegistro).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasOne(e => e.Rol).WithMany(r => r.Usuarios).HasForeignKey(e => e.RolId);
         });
 
-        OnModelCreatingPartial(modelBuilder);
-    }
+        modelBuilder.Entity<Prestamo>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FechaPrestamo).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Estado).HasMaxLength(20).IsRequired().HasDefaultValue("Activo");
+            entity.HasOne(e => e.Usuario).WithMany(u => u.Prestamos).HasForeignKey(e => e.UsuarioId);
+            entity.HasOne(e => e.Libro).WithMany(l => l.Prestamos).HasForeignKey(e => e.LibroId);
+        });
 
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+        base.OnModelCreating(modelBuilder);
+    }
 }
