@@ -1,95 +1,79 @@
-using App_Biblioteca.Application.DTOs.Libro;
-using App_Biblioteca.Application.UseCases.Libro;
+using App_Biblioteca.Application.UseCases.Libros.Commands.CreateLibro;
+using App_Biblioteca.Application.UseCases.Libros.Commands.DeleteLibro;
+using App_Biblioteca.Application.UseCases.Libros.Commands.UpdateLibro;
+using App_Biblioteca.Application.UseCases.Libros.Queries.GetAllLibros;
+using App_Biblioteca.Application.UseCases.Libros.Queries.GetLibroById;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace App_Biblioteca.Controllers;
+namespace App_Biblioteca.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class LibroController : ControllerBase
 {
-    private readonly GetAllLibrosUseCase _getAllLibrosUseCase;
-    private readonly GetLibroByIdUseCase _getLibroByIdUseCase;
-    private readonly CreateLibroUseCase _createLibroUseCase;
-    private readonly UpdateLibroUseCase _updateLibroUseCase;
-    private readonly DeleteLibroUseCase _deleteLibroUseCase;
+    private readonly IMediator _mediator;
 
-    public LibroController(
-        GetAllLibrosUseCase getAllLibrosUseCase,
-        GetLibroByIdUseCase getLibroByIdUseCase,
-        CreateLibroUseCase createLibroUseCase,
-        UpdateLibroUseCase updateLibroUseCase,
-        DeleteLibroUseCase deleteLibroUseCase)
+    public LibroController(IMediator mediator)
     {
-        _getAllLibrosUseCase = getAllLibrosUseCase;
-        _getLibroByIdUseCase = getLibroByIdUseCase;
-        _createLibroUseCase = createLibroUseCase;
-        _updateLibroUseCase = updateLibroUseCase;
-        _deleteLibroUseCase = deleteLibroUseCase;
+        _mediator = mediator;
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAll()
     {
-        var libros = await _getAllLibrosUseCase.ExecuteAsync();
-
-        return Ok(libros);
+        var result = await _mediator.Send(new GetAllLibrosQuery());
+        return Ok(result);
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetById(int id)
     {
-        var libro = await _getLibroByIdUseCase.ExecuteAsync(id);
-
-        if (libro is null)
+        try
         {
-            return NotFound();
+            var result = await _mediator.Send(new GetLibroByIdQuery { Id = id });
+            return Ok(result);
         }
-
-        return Ok(libro);
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateLibroDto dto)
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> Create([FromBody] CreateLibroCommand command)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        var libro = await _createLibroUseCase.ExecuteAsync(dto);
-
-        return CreatedAtAction(nameof(GetById), new { id = libro.Id }, libro);
+        var result = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateLibroDto dto)
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateLibroCommand command)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
+        if (id != command.Id)
+            return BadRequest(new { message = "El Id de la ruta no coincide con el cuerpo." });
 
-        var updated = await _updateLibroUseCase.ExecuteAsync(id, dto);
+        var result = await _mediator.Send(command);
+        if (!result)
+            return NotFound(new { message = $"Libro con Id {id} no encontrado." });
 
-        if (!updated)
-        {
-            return NotFound();
-        }
-
-        return Ok();
+        return NoContent();
     }
 
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
-        var deleted = await _deleteLibroUseCase.ExecuteAsync(id);
+        var result = await _mediator.Send(new DeleteLibroCommand { Id = id });
+        if (!result)
+            return NotFound(new { message = $"Libro con Id {id} no encontrado." });
 
-        if (!deleted)
-        {
-            return NotFound();
-        }
-
-        return Ok();
+        return NoContent();
     }
 }
